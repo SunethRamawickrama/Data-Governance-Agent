@@ -1,0 +1,37 @@
+services:
+  data-registry-db:
+    image: postgres:latest
+    container_name: data-registry-db
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: ${DATA_REGISTRY_DATA_USER}
+      POSTGRES_PASSWORD: ${DATA_REGISTRY_DATA_PASSWORD}
+      POSTGRES_DB: data_registry_data
+    volumes:
+      - ./data/data_registry_db/init.sql:/docker-entrypoint-initdb.d/1_init.sql
+  ads-db:
+    image: postgres:latest
+    container_name: ads-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${ADS_DB_USER}
+      POSTGRES_PASSWORD: ${ADS_DB_PASSWORD}
+      POSTGRES_DB: ads_data
+    volumes:
+      - ./data/ads_db/init.sql:/docker-entrypoint-initdb.d/1_init.sql
+      - ./data/ads_db/seed.sql:/docker-entrypoint-initdb.d/2_seed.sql
+
+  governance-db:
+    image: postgres:latest
+    container_name: governance-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${GOV_DB_USER}
+      POSTGRES_PASSWORD: ${GOV_DB_PASSWORD}
+      POSTGRES_DB: governance_data
+    volumes:
+      - ./data/governance_db/init.sql:/docker-entrypoint-initdb.d/1_init.sql
+      - ./data/governance_db/seed.sql:/docker-entrypoint-initdb.d/2_seed.sql
