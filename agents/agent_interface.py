@@ -1,14 +1,13 @@
 from dotenv import load_dotenv
 from abc import ABC, abstractmethod
 from groq import Groq
+from ollama import Client
 import os
 
 class AgentInterface(ABC):
 
     def __init__(self, tool_executor):
-        load_dotenv()
-        GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-        self.groq_client = Groq(api_key=GROQ_API_KEY)
+        self.ollama_client = Client()
         self.tool_executor = tool_executor 
 
     @abstractmethod
