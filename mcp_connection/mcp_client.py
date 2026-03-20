@@ -6,6 +6,9 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 import traceback
 
+import sys
+import os
+
 class MCPClient:
     def __init__(self):
         # Initialize session and client objects
@@ -24,9 +27,12 @@ class MCPClient:
 
         path = Path(server_script_path).resolve()
         server_params = StdioServerParameters(
-            command="uv",
-            args=["--directory", str(path.parent), "run", path.name],
-            env=None,
+            command=sys.executable,
+            args=[str(path)],
+            env={
+            **os.environ,
+            "PYTHONPATH": str(path.parents[2])  # project root
+        },
         )
       
         stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
@@ -35,7 +41,8 @@ class MCPClient:
 
         try:
             await self.session.initialize()
-        except Exception:
+        except Exception as e:
+            print(f"Failed to initialize the MCP connection with {path} due to the error: {str(e)}")
             traceback.print_exc()
     
     async def list_tools(self):

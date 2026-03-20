@@ -1,12 +1,10 @@
 class ToolExecutor:
     '''Wrapper class for tool executing to avoid exposing the MCP to the agent'''
 
-    # set of allowed tools shared among class instances
-    ALLOWED_TOOLS = {"read_file", "list_files"}
-    
-    def __init__(self, mcp_client):
+    def __init__(self, mcp_client, allowed_tools: set = None):
         self.mcp_client = mcp_client
         self.tools = {}
+        self.allowed_tools = allowed_tools
 
     async def list_tools(self):
         response = await self.mcp_client.list_tools()
@@ -31,9 +29,6 @@ class ToolExecutor:
         return schemas
 
     async def execute_tool(self, name, args):
-        if name not in self.ALLOWED_TOOLS:
-            raise PermissionError("Tool not allowed")
-        
         result = await self.mcp_client.call_tool(name, args)
         return result
 
