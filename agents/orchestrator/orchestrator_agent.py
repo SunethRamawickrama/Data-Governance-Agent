@@ -38,26 +38,24 @@ class OrchestratorAgent(AgentInterface):
                 "content": user_message
             })
 
-        response = self.groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+        response = self.ollama_client.chat(
+            model="qwen2.5:7b",
             messages=[{
                 "role": "system",
                 "content": SYSTEM_PROMPT
             }, *message_history],
             tools=self.tool_executor.groq_tool_schema(),
-            tool_choice="auto"
         )
 
-        decision = response.choices[0].message
+        decision = response.message
 
-        # print(f"groq decision: {decision}\n")
+        print(f"groq decision: {decision}\n")
 
         if decision.tool_calls:
             for tool in decision.tool_calls:
 
-                tool_id = tool.id
                 tool_name = tool.function.name
-                tool_args = json.loads(tool.function.arguments)
+                tool_args = tool.function.arguments
 
                 print(f"Calling tool {tool_name}")
 
@@ -67,14 +65,13 @@ class OrchestratorAgent(AgentInterface):
 
                 message_history.append({
                     "role": "assistant",
-                    "tool_calls": [tool]
+                    "tool_calls": decision.tool_calls
                 })
 
                 message_history.append({
                     "role": "tool",
-                    "tool_call_id": tool_id,
                     "name": tool_name,
-                    "content": tool_result
+                    "content": str(tool_result)
                 })
 
             return await self.run(message_history=message_history, depth=depth+1)

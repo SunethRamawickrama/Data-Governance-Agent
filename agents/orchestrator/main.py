@@ -28,4 +28,4 @@ async def run(task: str):
         await mcp_client.cleanup()
 
 if __name__ == "__main__":
-     asyncio.run(run("explain all the databases connected to the system"))
+     asyncio.run(run("what information does ads database contain"))

@@ -15,22 +15,20 @@ class DatabaseAgent(AgentInterface):
         
         # print("invoking database management agent\n")
 
-        SYSTEM_PROMPT = f"""
+        SYSTEM_PROMPT = """
             You are a database scanning agent for a data governance system.
 
             You MUST follow this exact sequence:
 
-            STEP 1: ALWAYS call get_all_sources first to get the list of available databases.
+            STEP 1: call get_all_dbs ONCE to get the list of available databases.
             STEP 2: Find the database matching the requested db_name from the results.
-            STEP 3: Use the exact "source_name" field from the results as db_name in ALL subsequent tool calls.
+            STEP 3: Use the exact name from the results as db_name in ALL subsequent tool calls.
             STEP 4: Only then call list_tables, get_schema, get_sample_rows etc to perform the given task.
 
-            NEVER call any tool other than get_all_sources first.
-            NEVER guess or assume database names — always use the source_name from get_all_sources.
-
-            Available tools: {self.tool_executor.groq_tool_schema()}
-
-            Return your final answer as a structured JSON object.
+            NEVER guess or assume database names — always use the source_name from get_all_dbs.
+            DONT'T call get_all_dbs repeatedly if you found the correct database name from a call earlier.
+            NEVER repeat a tool call you have already made with the same arguments.
+            Once you have sufficient data to answer the task, stop and return JSON.
         
         """
         
@@ -43,17 +41,16 @@ class DatabaseAgent(AgentInterface):
                 "content": user_message
             })
 
-        response = self.groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+        response = self.ollama_client.chat(
+            model="qwen2.5:7b",
             messages=[{
                 "role": "system",
                 "content": SYSTEM_PROMPT
             }, *message_history],
-            tools=self.tool_executor.groq_tool_schema(),
-            tool_choice="auto"
+            tools=self.tool_executor.groq_tool_schema()
         )
 
-        decision = response.choices[0].message
+        decision = response.message
 
         # print(f"groq decision: {decision}\n")
 
@@ -61,9 +58,8 @@ class DatabaseAgent(AgentInterface):
         if decision.tool_calls:
             for tool in decision.tool_calls:
 
-                tool_id = tool.id
                 tool_name = tool.function.name
-                tool_args = json.loads(tool.function.arguments)
+                tool_args = (tool.function.arguments)
 
                 # print(f"Calling tool {tool_name}")
 
@@ -73,14 +69,13 @@ class DatabaseAgent(AgentInterface):
 
                 message_history.append({
                     "role": "assistant",
-                    "tool_calls": [tool]
+                    "tool_calls": decision.tool_calls
                 })
 
                 message_history.append({
                     "role": "tool",
-                    "tool_call_id": tool_id,
                     "name": tool_name,
-                    "content": tool_result
+                    "content": str(tool_result)
                 })
 
             return await self.run(message_history=message_history, depth=depth+1)
