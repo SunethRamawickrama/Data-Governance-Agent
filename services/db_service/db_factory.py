@@ -25,8 +25,6 @@ def get_connection (db_name: str, host: str=None, port:int=None):
         # Establish the connection
         conn = psycopg2.connect(host=host, port=port, user=user,
             password=password, dbname=db_name)
-
-        print(f"CONNECTING TO → host={host}, port={port}, db={db_name}, user={user}")
       
         return conn
 
@@ -36,8 +34,6 @@ def get_connection (db_name: str, host: str=None, port:int=None):
 
 def execute_query (db_name: str, sql:str, params=None):
     conn = get_connection(db_name=db_name)
-
-    print(f"executing the query {sql} with params {params} in the database {db_name}")
     try:
         with conn.cursor() as crsr:
             crsr.execute(sql, params)
@@ -51,7 +47,6 @@ def execute_query (db_name: str, sql:str, params=None):
             return QueryResult(columns=[], rows=[], row_count=crsr.rowcount)
         
     except Exception as e:
-        print(e)
         raise e
     finally:
             conn.close()

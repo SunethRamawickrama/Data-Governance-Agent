@@ -84,7 +84,7 @@ def list_files(
                     file_path = item.resolve()
                     build_file_tree(file_path, max_depth - 1, indent + "    ")
         except Exception as e:
-            traceback.print_exc
+            # traceback.print_exc
             return f"Exception has occured: {str(e)}"
 
     build_file_tree(rel_path)

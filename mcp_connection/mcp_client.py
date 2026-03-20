@@ -42,14 +42,15 @@ class MCPClient:
         try:
             await self.session.initialize()
         except Exception as e:
-            print(f"Failed to initialize the MCP connection with {path} due to the error: {str(e)}")
-            traceback.print_exc()
+            # print(f"Failed to initialize the MCP connection with {path} due to the error: {str(e)}")
+            # traceback.print_exc(file=sys.stderr)
+            raise e
     
     async def list_tools(self):
         # List available tools
         response = await self.session.list_tools()
         tools = response.tools
-        print("\nConnected to server with tools:", [tool.name for tool in tools])
+        # print("\nConnected to server with tools:", [tool.name for tool in tools])
         return tools
     
     async def call_tool(self, name, args):

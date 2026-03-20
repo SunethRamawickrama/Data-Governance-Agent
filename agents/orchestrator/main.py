@@ -10,7 +10,7 @@ async def run(task: str):
     
     try:
         mcp_client = MCPClient()
-        await mcp_client.connect_to_server("mcp_connection/servers/db_server.py")
+        await mcp_client.connect_to_server("mcp_connection/servers/main_mcp_server.py")
    
         toolExecutor = ToolExecutor(mcp_client=mcp_client)
         await toolExecutor.list_tools()
@@ -28,4 +28,4 @@ async def run(task: str):
         await mcp_client.cleanup()
 
 if __name__ == "__main__":
-     asyncio.run(run("describe all the dbs connected to the system"))
+     asyncio.run(run("explain all the databases connected to the system"))

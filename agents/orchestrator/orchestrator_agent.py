@@ -9,9 +9,12 @@ class OrchestratorAgent(AgentInterface):
         super().__init__(tool_executor)
 
     @override
-    async def run(self, message_history, user_message=None):
+    async def run(self, message_history, user_message=None, depth:int=0, max_depth:int=10):
 
-        print("invoking agent\n")
+        if depth > max_depth:
+            return json.dumps({"Error": "Max iterations reached"})
+
+        # print("invoking agent\n")
 
         SYSTEM_PROMPT = """You are a data governance orchestrator. You coordinate 
         specialized sub-agents to complete data governance tasks.
@@ -47,7 +50,7 @@ class OrchestratorAgent(AgentInterface):
 
         decision = response.choices[0].message
 
-        print(f"groq decision: {decision}\n")
+        # print(f"groq decision: {decision}\n")
 
         if decision.tool_calls:
             for tool in decision.tool_calls:
@@ -74,7 +77,7 @@ class OrchestratorAgent(AgentInterface):
                     "content": tool_result
                 })
 
-            return await self.run(message_history=message_history)
+            return await self.run(message_history=message_history, depth=depth+1)
 
         else:
             message_history.append({

@@ -1,5 +1,6 @@
 from mcp.server.fastmcp import FastMCP
 from services.db_service.db_factory import execute_query
+from services.db_service.crud import serialize_row
 
 db_mcp_server = FastMCP()
 
@@ -7,10 +8,12 @@ db_mcp_server = FastMCP()
 
 '''this tool will get all the available databases connected to the system by querying the data registry table.
 The agent will use this tool to dynamically discover what database to use in a given audit/prompt'''
-@db_mcp_server.tool()
+@db_mcp_server.tool(
+        name="get_all_dbs",
+        description="list all the databases connected to the system"
+)
 def get_all_dbs():
     try:
-        print("Agent decided to get all the dbs in the source registry")
         result = execute_query(
             db_name="data_registry_data",
             sql=""" SELECT * FROM data_sources
@@ -18,16 +21,19 @@ def get_all_dbs():
                 ORDER BY created_at DESC; """ )
         return {
             "count": result.row_count,
-            "databases": result.rows
+            "databases": [row["source_name"] for row in result.rows]
         }
     except Exception as e:
         return {
             "error": str(e)
         }
 
-@db_mcp_server.tool()
+@db_mcp_server.tool(
+        name = "get_schema",
+        description="""Returns column names and types for a given table."""
+)
 def get_schema(db_name: str, table_name: str) -> dict:
-    """Returns column names and types for a given table."""
+    
     result = execute_query(
         db_name,
         """
@@ -40,9 +46,12 @@ def get_schema(db_name: str, table_name: str) -> dict:
     )
     return {"columns": result.rows}
 
-@db_mcp_server.tool()
+@db_mcp_server.tool(
+        name="get_sample_rows",
+        description=  """Returns n number of sample rows from a table."""
+)
 def sample_rows(db_name: str, table_name: str, n: int = 10) -> dict:
-    """Returns n sample rows from a table."""
+  
     result = execute_query(
         db_name,
         f"SELECT * FROM {table_name} LIMIT %s",
@@ -50,9 +59,12 @@ def sample_rows(db_name: str, table_name: str, n: int = 10) -> dict:
     )
     return {"rows": result.rows, "row_count": result.row_count}
 
-@db_mcp_server.tool()
+@db_mcp_server.tool(
+        name="list_tables",
+        description= """Lists all tables in a database."""
+)
 def list_tables(db_name: str) -> dict:
-    """Lists all tables in a database."""
+   
     result = execute_query(
         db_name,
         """
@@ -63,9 +75,12 @@ def list_tables(db_name: str) -> dict:
     )
     return {"tables": result.rows}
 
-@db_mcp_server.tool()
+@db_mcp_server.tool(
+        name="get_column_stats",
+        description="""Returns null count, distinct count, sample values for a column."""
+)
 def get_column_stats(db_name: str, table_name: str, column_name: str) -> dict:
-    """Returns null count, distinct count, sample values for a column."""
+    
     result = execute_query(
         db_name,
         f"""
@@ -84,6 +99,7 @@ def get_column_stats(db_name: str, table_name: str, column_name: str) -> dict:
         "stats": result.rows[0],
         "sample_values": [r[column_name] for r in samples.rows]
     }
+
 
 def main():
     # Initialize and run the server

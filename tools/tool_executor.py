@@ -9,8 +9,6 @@ class ToolExecutor:
     async def list_tools(self):
         response = await self.mcp_client.list_tools()
 
-        # print(response)
-
         # initialize the tool registry
         for tool in response:
             self.tools[tool.name] = tool
