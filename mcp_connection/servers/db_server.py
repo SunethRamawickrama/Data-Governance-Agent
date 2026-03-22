@@ -100,6 +100,32 @@ def get_column_stats(db_name: str, table_name: str, column_name: str) -> dict:
         "sample_values": [r[column_name] for r in samples.rows]
     }
 
+@db_mcp_server.tool(
+    name="get_table_metadata",
+    description="Returns governance metadata for a table: owner, retention policy, access controls."
+)
+def get_table_metadata(db_name: str, table_name: str) -> dict:
+    # query your data_registry or a governance_metadata table
+    # for now, return a structured empty shell so downstream nodes 
+    # can detect missing metadata as a policy violation
+    result = execute_query(
+        db_name,
+        """
+        SELECT *
+        FROM information_schema.tables
+        WHERE table_name = %s AND table_schema = 'public'
+        """,
+        params=(table_name,)
+    )
+    return {
+        "owner": None,
+        "retention_policy_days": None,
+        "encryption_at_rest": None,
+        "access_control_list": [],
+        "consent_basis": None,
+        "table_info": result.rows[0] if result.rows else {}
+    }
+
 
 def main():
     # Initialize and run the server

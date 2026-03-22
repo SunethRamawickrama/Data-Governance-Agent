@@ -1,3 +1,4 @@
+from workflow.types import ColumnReport, TableReport, SourceScanReport, AuditJob
 from mcp_connection.servers import db_server
 from agents.agent_interface import AgentInterface
 from typing import override
@@ -88,3 +89,67 @@ class DatabaseAgent(AgentInterface):
             return decision.content
 
 
+    async def get_source_report(self, audit_job: AuditJob) -> SourceScanReport:
+        '''Given a audit job return the SourceScanReport with information regarding the source'''
+        db_name = audit_job.source_name
+
+        tables_result = await self.tool_executor.execute_tool("list_tables", 
+                            {"db_name": db_name})
+
+        tables = tables_result["tables"]
+        
+        table_reports = []
+        for table in tables:
+
+            table_name = table["table_name"]
+
+            schema_result = await self.tool_executor.execute_tool(
+            "get_schema", {"db_name": db_name, "table_name": table_name}
+            )
+            raw_columns = schema_result["columns"]  
+
+            samples_result = await self.tool_executor.execute_tool(
+                "get_sample_rows", {"db_name": db_name, "table_name": table_name, "n": 5}
+            )
+            sample_rows = samples_result["rows"]
+            row_count   = samples_result["row_count"]
+
+            column_reports = []
+            for col in raw_columns:
+                col_name = col["column_name"]
+
+                # get sample values + real row count per column
+                stats_result = await self.tool_executor.execute_tool(
+                    "get_column_stats",
+                    {"db_name": db_name, "table_name": table_name, "column_name": col_name}
+                )
+
+                # use total_rows from first column's stats as the real row count
+                if not column_reports:
+                    row_count = stats_result["stats"]["total_rows"]
+
+                column_reports.append(ColumnReport(
+                    column_name=col_name,
+                    data_type=col["data_type"],
+                    sample_values=stats_result["sample_values"],
+                ))
+            metadata_result = await self.tool_executor.execute_tool(
+            "get_table_metadata", {"db_name": db_name, "table_name": table_name}
+            )
+
+            table_reports.append(TableReport(
+                table_name=table_name,
+                row_count=row_count,
+                columns=column_reports,
+                sample_rows=sample_rows,
+                metadata=metadata_result,
+            ))
+                
+        
+        return SourceScanReport(
+            source_id=audit_job.source_id,
+            source_type="database",
+            tables=table_reports
+        )
+
+    

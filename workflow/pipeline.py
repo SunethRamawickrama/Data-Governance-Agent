@@ -4,8 +4,7 @@ from workflow.types import AuditJob, AuditReport
 class AuditPipeline:
     """
     Deterministic pipeline runner.
-    Executes nodes in a fixed sequence — no LLM decides the order.
-    On failure: marks the job, persists context at failure point, re-raises.
+    Executes nodes in a fixed sequence
     """
  
     def __init__(
