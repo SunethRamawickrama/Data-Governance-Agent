@@ -1,16 +1,12 @@
 from workflow.nodes import WorkflowNode, ScanNode, ClassifierNode, PolicyNode, RemediationNode, AssembleNode, AuditWorkflow, NodeFailure
-from agents.sub_agents import db_agent, classification_agent, policy_agent, remedition_agent
 from workflow.types import AuditJob, AuditReport
+from agents.sub_agents import classification_agent, policy_agent, remedition_agent
+from agents.sub_agents.db_agent import get_db_agent
 from ollama import Client
 from datetime import datetime
 import uuid
 
 class AuditPipeline:
-    """
-    Deterministic pipeline runner.
-    Executes nodes in a fixed sequence
-    """
- 
     def __init__(
         self,
         db_agent,
@@ -28,10 +24,9 @@ class AuditPipeline:
             RemediationNode(remediation_agent),
             AssembleNode(ollama_client),
         ]
- 
+
     async def run(self, job: AuditJob) -> AuditReport:
         state = AuditWorkflow(job=job)
- 
         for node in self.nodes:
             try:
                 state = await node.run(state)
@@ -39,18 +34,14 @@ class AuditPipeline:
                 state.failed_at_node = e.node_name
                 state.error          = e.reason
                 raise
- 
         return state.audit_report
-    
-    async def audit(self, source_name: str, source_type: str, frameworks: list[str] = ["GDPR", "CCPA"]) -> AuditReport:
-        """
-        Centralized entry point. Build the job and run the pipeline.
 
-        Args:
-            source_name: name of the source as registered in the data registry (e.g. "ads_db")
-            source_type: type of the source — "database" | "file" | "s3"
-            frameworks:  compliance frameworks to audit against
-        """
+    async def audit(
+        self,
+        source_name: str,
+        source_type: str,
+        frameworks: list[str] = ["GDPR", "CCPA"]
+    ) -> AuditReport:
         job = AuditJob(
             job_id      =str(uuid.uuid4()),
             source_id   =str(uuid.uuid4()),
@@ -59,16 +50,19 @@ class AuditPipeline:
             frameworks  =frameworks,
             created_at  =datetime.now(),
         )
-
         return await self.run(job)
 
 
-from agents.sub_agents.db_agent import get_db_agent
-agent = get_db_agent()
-audit_pipeline = AuditPipeline(
-        db_agent=agent,
+async def create_pipeline() -> AuditPipeline:
+    """
+    Async factory - call at startup to get a ready pipeline.
+    """
+    db_agent = await get_db_agent() 
+
+    return AuditPipeline(
+        db_agent            =db_agent,
         classification_agent=classification_agent.ClassificationAgent(),
-        policy_agent=policy_agent.PolicyAgent(),
-        remediation_agent=remedition_agent.RemediationAgent(),
-        ollama_client=Client()
-)
+        policy_agent        =policy_agent.PolicyAgent(),
+        remediation_agent   =remedition_agent.RemediationAgent(),
+        ollama_client       =Client(),
+    )

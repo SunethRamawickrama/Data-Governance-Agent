@@ -2,6 +2,7 @@ from workflow.types import ColumnReport, TableReport, SourceScanReport, AuditJob
 from mcp_connection.servers import db_server
 from agents.agent_interface import AgentInterface
 from typing import override
+from datetime import datetime
 import json
 
 class DatabaseAgent(AgentInterface):
@@ -90,27 +91,38 @@ class DatabaseAgent(AgentInterface):
 
 
     async def get_source_report(self, audit_job: AuditJob) -> SourceScanReport:
-        '''Given a audit job return the SourceScanReport with information regarding the source'''
         db_name = audit_job.source_name
 
-        tables_result = await self.tool_executor.execute_tool("list_tables", 
-                            {"db_name": db_name})
+        tables_result = await self.tool_executor.execute_tool("list_tables", {"db_name": db_name})
+        
+        # unwrap MCP content — result is a list of TextContent objects
+        if hasattr(tables_result, "content"):
+            tables_result = json.loads(tables_result.content[0].text)
+        elif isinstance(tables_result, list):
+            tables_result = json.loads(tables_result[0].text)
 
         tables = tables_result["tables"]
-        
+
         table_reports = []
         for table in tables:
-
             table_name = table["table_name"]
 
             schema_result = await self.tool_executor.execute_tool(
-            "get_schema", {"db_name": db_name, "table_name": table_name}
+                "get_schema", {"db_name": db_name, "table_name": table_name}
             )
-            raw_columns = schema_result["columns"]  
+            if hasattr(schema_result, "content"):
+                schema_result = json.loads(schema_result.content[0].text)
+            elif isinstance(schema_result, list):
+                schema_result = json.loads(schema_result[0].text)
+            raw_columns = schema_result["columns"]
 
             samples_result = await self.tool_executor.execute_tool(
                 "get_sample_rows", {"db_name": db_name, "table_name": table_name, "n": 5}
             )
+            if hasattr(samples_result, "content"):
+                samples_result = json.loads(samples_result.content[0].text)
+            elif isinstance(samples_result, list):
+                samples_result = json.loads(samples_result[0].text)
             sample_rows = samples_result["rows"]
             row_count   = samples_result["row_count"]
 
@@ -118,38 +130,46 @@ class DatabaseAgent(AgentInterface):
             for col in raw_columns:
                 col_name = col["column_name"]
 
-                # get sample values + real row count per column
                 stats_result = await self.tool_executor.execute_tool(
                     "get_column_stats",
                     {"db_name": db_name, "table_name": table_name, "column_name": col_name}
                 )
+                if hasattr(stats_result, "content"):
+                    stats_result = json.loads(stats_result.content[0].text)
+                elif isinstance(stats_result, list):
+                    stats_result = json.loads(stats_result[0].text)
 
-                # use total_rows from first column's stats as the real row count
                 if not column_reports:
                     row_count = stats_result["stats"]["total_rows"]
 
                 column_reports.append(ColumnReport(
-                    column_name=col_name,
-                    data_type=col["data_type"],
+                    column_name  =col_name,
+                    data_type    =col["data_type"],
                     sample_values=stats_result["sample_values"],
                 ))
+
             metadata_result = await self.tool_executor.execute_tool(
-            "get_table_metadata", {"db_name": db_name, "table_name": table_name}
+                "get_table_metadata", {"db_name": db_name, "table_name": table_name}
             )
+            if hasattr(metadata_result, "content"):
+                metadata_result = json.loads(metadata_result.content[0].text)
+            elif isinstance(metadata_result, list):
+                metadata_result = json.loads(metadata_result[0].text)
 
             table_reports.append(TableReport(
-                table_name=table_name,
-                row_count=row_count,
-                columns=column_reports,
-                sample_rows=sample_rows,
-                metadata=metadata_result,
+                table_name  =table_name,
+                row_count   =row_count,
+                columns     =column_reports,
+                sample_rows =sample_rows,
+                metadata    =metadata_result,
             ))
-                
-        
+
         return SourceScanReport(
-            source_id=audit_job.source_id,
+            source_id  =audit_job.source_id,
+            source_name=audit_job.source_name,
             source_type="database",
-            tables=table_reports
+            scanned_at =datetime.now(),
+            tables     =table_reports,
         )
 
 
