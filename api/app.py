@@ -1,13 +1,17 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from datetime import datetime
 from services.db_service import crud, schemas
 
+from services.RAG_service.chunker import Chunker
+
 import traceback
 
 app = FastAPI()
+
+chunker = Chunker()
 
 origins = [
     "http://localhost:3000",
@@ -70,3 +74,10 @@ def get_sources():
             content={"message": f"Error: {str(e)}"},
             status_code=500
         )
+
+@app.post("/api/upload")
+def upload(file: UploadFile = File(...)):
+    global chunker
+    chunker.upload(file=file)
+
+    return JSONResponse(content={"message": "File uploaded and stored in the vector store successfully!"}, status_code=200)
