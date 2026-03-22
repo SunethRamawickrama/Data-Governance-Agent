@@ -161,6 +161,7 @@ failure would occur in a workflow.'''
 @dataclass
 class AuditWorkflow:
     job:                AuditJob
+    error:              Optional[str]               = None
     source:             Optional[DataSource]        = None  # filled by SourceResolutionNode
     scan_report:        Optional[SourceScanReport]  = None  # filled by DiscoveryNode
     classified_report:  Optional[ClassifiedReport]  = None  # filled by ClassificationNode
@@ -168,7 +169,7 @@ class AuditWorkflow:
     remediation_report: Optional[RemediationReport] = None  # filled by RemediationNode
     audit_report:       Optional[AuditReport]       = None  # filled by ReportAssemblyNode
     failed_at_node:     Optional[str]               = None
-    error:              Optional[str]
+    
 
 '''This is the blueprint for all the nodes in the audit workflow. The run method at each step will execute its 
 own overriden run method to update the state using the AI agents'''

@@ -63,8 +63,10 @@ class AuditPipeline:
         return await self.run(job)
 
 
+from agents.sub_agents.db_agent import get_db_agent
+agent = get_db_agent()
 audit_pipeline = AuditPipeline(
-    db_agent,
+        db_agent=agent,
         classification_agent=classification_agent.ClassificationAgent(),
         policy_agent=policy_agent.PolicyAgent(),
         remediation_agent=remedition_agent.RemediationAgent(),

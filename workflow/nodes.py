@@ -1,6 +1,5 @@
 import datetime
 from workflow.types import WorkflowNode, SourceType, AuditWorkflow, NodeFailure, AuditReport
-from agents.agent_interface import AgentInterface
 
 '''The api will recieves the frontend request with the source name and the type to audit.
 This node will handle the scanning phase of the workflow, where it will route to either the db agent,
@@ -10,7 +9,7 @@ class ScanNode(WorkflowNode):
     '''this will call a predefined tool sequence to output the source report'''
     name = "scan"
 
-    def __init__(self, db_agent:AgentInterface, file_agent: AgentInterface=None, s3_agent:AgentInterface=None):
+    def __init__(self, db_agent, file_agent=None, s3_agent=None):
         '''inject dependencies through the constructor on runtime'''
         self._agents = {
             SourceType.DATABASE: db_agent,

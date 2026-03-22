@@ -152,4 +152,17 @@ class DatabaseAgent(AgentInterface):
             tables=table_reports
         )
 
+
+from mcp_connection.mcp_client import MCPClient
+from tools.tool_executor import ToolExecutor
+from agents.sub_agents.db_agent import DatabaseAgent
+async def get_db_agent():
+    mcp_client = MCPClient()
+    await mcp_client.connect_to_server("mcp_connection/servers/db_server.py")
     
+    toolExecutor = ToolExecutor(mcp_client=mcp_client)
+    await toolExecutor.list_tools()
+
+    agent = DatabaseAgent(tool_executor=toolExecutor)
+    return agent
+
