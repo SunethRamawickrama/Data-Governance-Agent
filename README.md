@@ -103,7 +103,7 @@ The remediation agent reviews all identified violations and searches the policy 
 **Example:**
 If a violation is identified as _"user names stored as raw values"_, and the policy document contains a remediation such as _"all user names must be encrypted or redacted"_, the agent will add this to the remediation list.
 
-## Future Development
+**Future Development:**
 
 A planned enhancement is to allow the system to automatically implement remediations after receiving human approval through MCP server connections.
 
@@ -144,7 +144,7 @@ project-root/
 │       └── remediation_agent
 │
 ├── mcp_connection/
-│   └── mcp_client,py
+│   └── mcp_client.py
 |   └── server/
 │        ├── db_server.py
 │        ├── file_server.py
