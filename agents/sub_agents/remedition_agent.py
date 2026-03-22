@@ -24,7 +24,7 @@ No extra text. No markdown. Just the JSON object."""
 
 class RemediationAgent:
 
-    def __init__(self, model: str = "llama3.2"):
+    def __init__(self, model: str = "qwen2.5:7b"):
         self.llm   = AsyncClient()
         self.model = model
 

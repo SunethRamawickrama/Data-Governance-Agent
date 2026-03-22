@@ -6,7 +6,7 @@ from datetime import datetime
 from services.db_service import crud, schemas
 
 from services.RAG_service.chunker import Chunker
-
+from workflow.pipeline import audit_pipeline
 import traceback
 
 app = FastAPI()
@@ -81,3 +81,8 @@ def upload(file: UploadFile = File(...)):
     chunker.upload(file=file)
 
     return JSONResponse(content={"message": "File uploaded and stored in the vector store successfully!"}, status_code=200)
+
+@app.post("/api/audit")
+async def run_audit(source_name: str, source_type: str):
+    report = await audit_pipeline.audit(source_name, source_type)
+    return report

@@ -1,5 +1,9 @@
 from workflow.nodes import WorkflowNode, ScanNode, ClassifierNode, PolicyNode, RemediationNode, AssembleNode, AuditWorkflow, NodeFailure
+from agents.sub_agents import db_agent, classification_agent, policy_agent, remedition_agent
 from workflow.types import AuditJob, AuditReport
+from ollama import Client
+from datetime import datetime
+import uuid
 
 class AuditPipeline:
     """
@@ -37,4 +41,32 @@ class AuditPipeline:
                 raise
  
         return state.audit_report
- 
+    
+    async def audit(self, source_name: str, source_type: str, frameworks: list[str] = ["GDPR", "CCPA"]) -> AuditReport:
+        """
+        Centralized entry point. Build the job and run the pipeline.
+
+        Args:
+            source_name: name of the source as registered in the data registry (e.g. "ads_db")
+            source_type: type of the source — "database" | "file" | "s3"
+            frameworks:  compliance frameworks to audit against
+        """
+        job = AuditJob(
+            job_id      =str(uuid.uuid4()),
+            source_id   =str(uuid.uuid4()),
+            source_name =source_name,
+            source_type =source_type,
+            frameworks  =frameworks,
+            created_at  =datetime.now(),
+        )
+
+        return await self.run(job)
+
+
+audit_pipeline = AuditPipeline(
+    db_agent,
+        classification_agent=classification_agent.ClassificationAgent(),
+        policy_agent=policy_agent.PolicyAgent(),
+        remediation_agent=remedition_agent.RemediationAgent(),
+        ollama_client=Client()
+)
